@@ -12,29 +12,96 @@
 	<artifactId>usuarios</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>usuarios</name>
-	<description>Demo project for Spring Boot</description>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+	<description>Microservicio de usuarios para la aplicación de ecommerce</description>
 	<properties>
 		<java.version>17</java.version>
 	</properties>
 	<dependencies>
+		<!-- Core Spring Boot -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
 		</dependency>
 
+		<!-- Web Services REST -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<!-- JPA y Base de Datos -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<!-- Oracle Database -->        
+		<dependency>
+			<groupId>com.oracle.database.jdbc</groupId>
+			<artifactId>ojdbc8</artifactId>
+			<version>21.1.0.0</version>
+		</dependency>
+		<!-- Oracle Wallet support -->        
+		<dependency>
+			<groupId>com.oracle.database.security</groupId>
+			<artifactId>oraclepki</artifactId>
+			<version>21.1.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.oracle.database.security</groupId>
+			<artifactId>osdt_cert</artifactId>
+			<version>21.1.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.oracle.database.security</groupId>
+			<artifactId>osdt_core</artifactId>
+			<version>21.1.0.0</version>
+		</dependency>
+
+		<!-- Bean Validation -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+		<!-- Utilidades de desarrollo -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- Spring Boot Starter Security -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
+		<!-- OAuth2 Resource Server -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
+
+		<!-- OAuth2 JOSE for JWT handling -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-jose</artifactId>
+		</dependency>
+
+		<!-- Microsoft Authentication Library (MSAL) -->
+		<dependency>
+			<groupId>com.microsoft.azure</groupId>
+			<artifactId>msal4j</artifactId>
+			<version>1.13.8</version>
+		</dependency>
+
+		<!-- Testing -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -42,11 +109,30 @@
 		</dependency>
 	</dependencies>
 
+	<repositories>
+		<repository>
+			<id>oracle-maven</id>
+			<url>https://maven.oracle.com</url>
+			<layout>default</layout>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</repository>
+	</repositories>
+
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
