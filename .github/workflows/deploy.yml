@@ -1,0 +1,81 @@
+name: Deploy usuarios to EC2
+
+on:
+  push:
+    branches: ["develop"]
+    paths:
+      - "**"
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: usuarios
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          ORACLE_DB_USERNAME: ${{ secrets.ORACLE_DB_USERNAME }}
+          ORACLE_DB_PASSWORD: ${{ secrets.ORACLE_DB_PASSWORD }}
+          AZURE_ACTIVEDIRECTORY_CLIENT_ID: ${{ secrets.AZURE_ACTIVEDIRECTORY_CLIENT_ID }}
+          AZURE_ACTIVEDIRECTORY_CLIENT_SECRET: ${{ secrets.AZURE_ACTIVEDIRECTORY_CLIENT_SECRET }}
+          AZURE_ACTIVEDIRECTORY_TENANT_ID: ${{ secrets.AZURE_ACTIVEDIRECTORY_TENANT_ID }}
+          SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${{ secrets.SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI }}
+          SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${{ secrets.SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            # 1) write env file for usuarios service
+            cat > ~/usuarios.env <<EOF
+            ORACLE_DB_USERNAME=${{ secrets.ORACLE_DB_USERNAME }}
+            ORACLE_DB_PASSWORD=${{ secrets.ORACLE_DB_PASSWORD }}
+            AZURE_ACTIVEDIRECTORY_CLIENT_ID=${{ secrets.AZURE_ACTIVEDIRECTORY_CLIENT_ID }}
+            AZURE_ACTIVEDIRECTORY_CLIENT_SECRET=${{ secrets.AZURE_ACTIVEDIRECTORY_CLIENT_SECRET }}
+            AZURE_ACTIVEDIRECTORY_TENANT_ID=${{ secrets.AZURE_ACTIVEDIRECTORY_TENANT_ID }}
+            SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${{ secrets.SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI }}
+            SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=${{ secrets.SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI }}
+            EOF
+            chmod 600 ~/usuarios.env
+
+            # 2) docker login & pull latest image
+            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+            # 3) stop and remove existing container
+            docker stop usuarios || true && docker rm usuarios || true
+
+            # 4) run new container on localhost 8082
+            docker run -d --name usuarios \
+              -p 127.0.0.1:8082:8082 \
+              --restart=always \
+              --env-file ~/usuarios.env \
+              ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+            # 5) reload nginx to refresh upstreams (optional)
+            sudo systemctl reload nginx || true
