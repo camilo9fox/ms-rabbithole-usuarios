@@ -65,13 +65,16 @@ jobs:
 
             # 2) docker login & pull latest image
             docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+            # ensure network exists
+            docker network inspect rabbit-net >/dev/null 2>&1 || docker network create rabbit-net
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
             # 3) stop and remove existing container
             docker stop usuarios || true && docker rm usuarios || true
 
-            # 4) run new container on localhost 8082
+            # 4) run new container attached to rabbit-net on localhost 8082
             docker run -d --name usuarios \
+              --network rabbit-net \
               -p 127.0.0.1:8082:8082 \
               --restart=always \
               --env-file ~/usuarios.env \
